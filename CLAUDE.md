@@ -16,7 +16,27 @@ Chosen route: postmarketOS (Alpine-based), device `samsung-santos10wifi`, built 
 - Android kernel/device source (not official LineageOS): https://github.com/santos10-dev
   (`android_kernel_samsung_santos10`, device trees).
 - postmarketOS port page: https://wiki.postmarketos.org/wiki/Samsung_Galaxy_Tab_3_10.1_Wi-Fi_(samsung-santos10wifi)
-  Search snippet suggested a vendor 3.4.x kernel (unconfirmed).
+  Wiki status: ARCHIVED (not in pmbootstrap's device list; type `samsung` / `santos10wifi` manually, kernel
+  must be built by us). Vendor kernel 3.4.34, x86. Reported working: touchscreen, Wi-Fi. 3D accel BROKEN
+  (software rendering only). Camera, Bluetooth, GPS, sensors untested. Other rows of the pasted feature
+  table lost their labels, so display/USB/suspend status is still unconfirmed.
+  Only Xfce4 tested (poor performance); Weston broken. lightdm fix needed after first boot:
+  `export DISPLAY=:0` in ~/.bashrc, and set `logind-check-graphical=false` in /etc/lightdm/lightdm.conf.
+- Package files live in pmaports `device/archived/{device,firmware,linux}-samsung-santos10wifi`
+  (last touched in commit cfbc1de3c, 2026-06-22). Flash method: heimdall (`flash_method=heimdall-bootimg`,
+  partition BOOT). Download mode: Power + Vol Down from off. Wiki flow:
+  `pmbootstrap flasher flash_kernel`, reboot to download mode, `pmbootstrap flasher flash_rootfs`.
+- The APKBUILD's kernel source URL (github.com/dpdudek/android_kernel_samsung_santos10) is a 404.
+  Same commit edec7f67e953eff11415ac47b6a5080e6e8b2ffe exists at
+  https://github.com/santos10-dev/android_kernel_samsung_santos10 and the tarball sha512 matches the
+  APKBUILD, so just change the URL (no checksum change). Risk: 3.4 kernel with patches only up to gcc10;
+  may not build with current Alpine gcc.
+- Our public repos (GitHub user `skelliam`):
+  - https://github.com/skelliam/android_kernel_samsung_santos10 (submodule `./kernel`, shallow; fork of santos10-dev; branch `pmos-santos10`
+    at edec7f67, put kernel fixes here as commits)
+  - https://github.com/skelliam/pmaports-santos10wifi (the 3 archived packages, kernel URL fixed, shared gcc
+    patches vendored as real files; submodule `./pmaports-santos10wifi`)
+- No tablet data needs backing up (user confirmed).
 
 ## Environment
 - Windows 11 host, WSL2 distro `Ubuntu` (24.04), 16 GB RAM, ample disk.

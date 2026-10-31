@@ -1,0 +1,8 @@
+[submodule "pmaports-santos10wifi"]
+	path = pmaports-santos10wifi
+	url = https://github.com/skelliam/pmaports-santos10wifi.git
+[submodule "kernel"]
+	path = kernel
+	url = https://github.com/skelliam/android_kernel_samsung_santos10.git
+	branch = pmos-santos10
+	shallow = true
