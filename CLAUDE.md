@@ -108,6 +108,18 @@ Caveats: pmOS x86 binaries are from 2026-09-10 but Alpine edge is current, so a 
   loads images through glycin, which needs `memfd_create` + `F_ADD_SEALS` (Linux 3.17); kernel 3.4.34 returns ENOSYS
   ("Libc error: ENOSYS" in /var/log/lightdm/seat0-greeter.log, needs root). Fix: `memfd_create-backport.patch` in
   linux-samsung-santos10wifi r3 (untested, not yet built). Other 3.17+ syscalls may surface next.
+- r3 image first boot (2026-11-01): ssh, Xorg, lightdm and slick-greeter start with no hand fixes and memfd_create works
+  (no ENOSYS), but the screen stayed blank. Direct test: writing a colour-bar pattern to /dev/fb0 shows correctly on
+  the panel, so the display path is fine (the backlight reads -1 in sysfs but is lit; ignore it).
+- Root cause of the blank screen (found with strace copied from Alpine's x86 repo): glycin sets RLIMIT_AS to 0 in the
+  child right before exec'ing bwrap; the value is derived from `MemAvailable` in /proc/meminfo, which kernel 3.4 does
+  not have (added in 3.14). With RLIMIT_AS=0 the kernel cannot build the new stack and execve fails with E2BIG
+  ("Argument list too long"), so every gdk-pixbuf image load fails and GTK aborts. Fix: `proc-meminfo-memavailable.patch`
+  in linux-samsung-santos10wifi r4 (si_mem_available backport). GLYCIN_DISABLE_SANDBOX alone does not help here.
+- The user approved `GLYCIN_DISABLE_SANDBOX=1` system-wide (device r4 trigger appends it to /etc/environment), but it
+  may be redundant once MemAvailable exists (glycin falls back by itself when bwrap cannot run): test and drop it if so.
+- strace on the tablet: fetch `strace`, `libdw`, `libelf`, `musl-fts` .apk from dl-cdn.alpinelinux.org/alpine/edge/main/x86,
+  extract with tar, scp to /tmp, run with LD_LIBRARY_PATH pointing at the extracted libs.
 - The tablet once powered off ~1 min after boot (Samsung charging icon), probably a flat battery after hours of
   debugging on USB power; charge it before long sessions.
 - Images in `~/santos10-flash/`: boot.img/rootfs.img = OpenRC (current), *-systemd.img = old, boot-openrc-debug.img =
