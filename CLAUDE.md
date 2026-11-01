@@ -127,13 +127,25 @@ Caveats: pmOS x86 binaries are from 2026-09-10 but Alpine edge is current, so a 
   debug overlay build. `rootfs.raw`/`root.ext4` in the session scratchpad can be inspected with `debugfs`.
 
 ## Tools (`tools/`)
-- `build.sh`: pmbootstrap build of kernel, firmware, device package, then `install` (asks for sudo).
-- `mk-debug-boot.py in.img out.img`: debug copy of boot.img with a telnet root shell (172.16.42.1:23) and a pause
-  before switch_root (`touch /tmp/go` to continue). Flash with `heimdall flash --BOOT out.img`.
-- `ssh-tablet.py 'cmd' [--sudo]` (needs `PMOS_PASSWORD`), `watch-boot.sh`, `unsparse.py` (sparse rootfs -> raw,
-  then `dd` the root partition and read it with `debugfs`, no root needed).
-- Work in progress (2026-11-01): packages `device-samsung-santos10wifi` r3 and `linux-samsung-santos10wifi` r3
-  (memfd_create backport) are committed but their first boot is still untested; see the OpenRC findings above.
+Everything used during bring-up that is not a stock package is scripted here, so it can be reproduced.
+- Host setup: `build-heimdall.sh` (Heimdall 2.2.2 from source, needs libusb-1.0-0-dev + zlib1g-dev), `setup-pmaports.sh`
+  (pin pmaports to `03e1f7d0f4`, copy our packages, checksum), `build.sh` (pmbootstrap build + `install`; asks for sudo).
+- Flashing: `flash.sh [dir]` (checks download mode + SHA256SUMS, asks for confirmation, flashes BOOT and SYSTEM).
+- Debugging a tablet that does not reach the desktop: `mk-debug-boot.py in.img out.img` (telnet root shell on
+  172.16.42.1:23 + pause before switch_root, `touch /tmp/go` to continue), `unsparse.py` (sparse rootfs -> raw; cut
+  the root partition out with `dd` and read it with `debugfs`, no root needed), `watch-boot.sh`.
+- Debugging a booted tablet over USB networking (host 172.16.42.2, tablet 172.16.42.1): `ssh-tablet.py 'cmd' [--sudo]`
+  (set `PMOS_PASSWORD`, optional `PMOS_USER`), `install-strace-on-tablet.py` (fetches strace + libs from Alpine edge x86
+  and copies them to /tmp on the tablet; run as `LD_LIBRARY_PATH=/tmp/stl/usr/lib:/tmp/stl/lib /tmp/strace ...`),
+  `fbtest.py` (colour bars straight into /dev/fb0, proves the panel works without X).
+- Not scripted (needs a GUI session): opening a `gnome-terminal` window for the user to type a sudo password.
+
+## Power budget (2026-11-01)
+- On USB from the PC the tablet gets about 460 mA (`sec-charger current_now`), while XFCE starting up with the backlight
+  on draws about 1,100 mA (`sec-fuelgauge current_now`), so "Charging" is a net discharge. The tablet already powered
+  off once at a low battery, and froze (ping alive, ssh dead) at 3%. Use a wall charger (2 A or more) while developing,
+  and let a flat battery charge with the tablet off before booting.
+- `/sys/class/power_supply/battery/{status,capacity}` and `dmesg | grep sec_bat_monitor_work` show the state.
 
 ## Environment
 - Work happens on native Linux now: Linux Mint 22.2 (Ubuntu 24.04 base) booted on the same PC that also has
@@ -160,7 +172,8 @@ Caveats: pmOS x86 binaries are from 2026-09-10 but Alpine edge is current, so a 
 - [x] Flashed BOOT and SYSTEM from native Linux with Heimdall 2.2.2 (2026-10-31, ~6 min, both uploads successful).
 - [x] Rebuilt with OpenRC (2026-11-01, pmbootstrap set up natively on the Mint install, pmaports pinned to 03e1f7d0f4);
       device-samsung-santos10wifi r2 adds the losetup initramfs hook. Verified in the images: hook present, no systemd.
-- [ ] Flash the OpenRC boot.img + rootfs.img, then first boot: apply the lightdm fix above, test Wi-Fi/touch, record results here.
+- [x] Flashed the OpenRC r4 images (kernel with memfd_create + MemAvailable): login screen and XFCE session start (2026-11-01).
+- [ ] First boot, remaining: apply the lightdm fix above, test Wi-Fi/touch, record results here.
 - [ ] Write a setup script/README so someone else can reproduce this without the conversation.
 
 ## Rules
